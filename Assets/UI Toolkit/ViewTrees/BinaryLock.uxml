@@ -1,0 +1,9 @@
+<engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/DigitStyles.uss?fileID=7433441132597879392&amp;guid=9665f0a9aa3fc6141810b12093877efc&amp;type=3#DigitStyles" />
+    <engine:VisualElement name="Digits" style="flex-grow: 1; justify-content: flex-start; max-height: 100%; min-height: 100%; align-items: stretch; overflow: visible; display: flex; opacity: 1; white-space: normal; -unity-text-align: upper-left; align-content: flex-end; flex-direction: row; align-self: stretch;">
+        <engine:VisualElement name="Digit" style="flex-grow: 1; justify-content: flex-start; align-self: auto; width: 100%; height: 100%; max-width: 15%; margin-right: 16px; margin-left: 16px; margin-top: 16px;">
+            <engine:VisualElement name="DigitBackground" class="DigitForeground" style="width: 100%; background-color: rgba(34, 34, 34, 0.34);" />
+            <engine:VisualElement name="DigitForeground" class="DigitForeground" style="width: 100%;" />
+        </engine:VisualElement>
+    </engine:VisualElement>
+</engine:UXML>
