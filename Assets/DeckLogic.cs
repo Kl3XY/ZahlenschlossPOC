@@ -8,6 +8,16 @@ public class DeckLogic : MonoBehaviour
 {
     [SerializeField] public GameObject value;
 
+    public void Start()
+    {
+        var newDeckPos = new Vector3()
+        {
+            x = Screen.width / 2,
+            y = Screen.height / 2,
+            z = 0
+        };
+    }
+
     private string getUserBinary()
     {
         var res = "";

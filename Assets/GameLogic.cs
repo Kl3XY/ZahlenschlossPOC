@@ -1,6 +1,9 @@
 using UnityEngine;
 using System;
 using UnityEngine.UI;
+using JetBrains.Annotations;
+using UnityEditor;
+using Unity.VisualScripting;
 
 public class GameLogic : MonoBehaviour
 {
@@ -12,11 +15,14 @@ public class GameLogic : MonoBehaviour
     [SerializeField] private GameObject timerText;
     [SerializeField] private GameObject gameScoreText;
     [SerializeField] private GameObject scoreToAimFor;
+    [SerializeField] private GameObject _chainTextd;
     [SerializeField] private GameObject deckPrefab;
     [SerializeField] private GameObject background;
+    [SerializeField] private int chainCount = 1;
+    private int amountCompleted = 1;
     public bool IsSubmitting = false;
     [SerializeField] private double delay = 0;
-    private int pos = 0;
+    private uint pos = 0;
     public int GameScore = 0;
     public double Timer = 240;
     private Image _image;
@@ -35,7 +41,7 @@ public class GameLogic : MonoBehaviour
         _defaultColor = _image.color;
 
         var scoreText = scoreToAimFor.GetComponent<TMPro.TextMeshProUGUI>();
-        scoreText.text = UnityEngine.Random.Range(0, 255).ToString();
+        scoreText.text = UnityEngine.Random.Range(0, 20).ToString();
 
     }
 
@@ -46,6 +52,9 @@ public class GameLogic : MonoBehaviour
 
         var scoreText = scoreNum.GetComponent<TMPro.TextMeshProUGUI>();
         scoreText.text = FinalScore.ToString();
+
+        var chainText = _chainTextd.GetComponent<TMPro.TextMeshProUGUI>();
+        chainText.text = $"x {chainCount}";
         //scoreText.color = Color.Lerp(scoreText.color, new Color(1f - _color.r, 1f - _color.g, 1f - _color.b), Time.deltaTime * 10);
 
         Timer -= Time.fixedDeltaTime;
@@ -67,7 +76,7 @@ public class GameLogic : MonoBehaviour
 
             if (delay <= 0)
             {
-                var logic = _decklogic.GetCard(pos).GetComponentInChildren<CardLogic>();
+                var logic = _decklogic.GetCard((int)pos).GetComponentInChildren<CardLogic>();
                 logic.bump();
 
                 Vibration.Vibrate(5);
@@ -99,13 +108,17 @@ public class GameLogic : MonoBehaviour
                 if (Is.text == toBe.text)
                 {
                     _image.color = new Color(1f, 1f, 1f);
-
-                    toBe.text = UnityEngine.Random.Range(0, 255).ToString();
+                    
+                    toBe.text = Generate(chainCount).ToString();
                     FinalScore = 0;
                     scoreToAimFor.GetComponent<MadeNumberLogic>().bump();
 
-                    GameScore += 100;
-                    Timer += 15;
+                    chainCount++;
+
+                    GameScore += 100 + 45 * chainCount;
+                    Timer += Math.Max(15, 25 - 5 * amountCompleted) ;
+
+                    amountCompleted += 1;
 
                     var button = deckPrefab.GetComponent<DeckLogic>();
                     foreach (Transform child in deckPrefab.transform)
@@ -115,12 +128,33 @@ public class GameLogic : MonoBehaviour
                         comp.flipCard();
 
                     }
+                } else
+                {
+                    chainCount = 1;
+
+                    _image.color = new Color(1f, 0f, 0f);
                 }
             }
         }
     }
 
-    private string generateBinary(int pos)
+    public static int Generate(int inp)
+    {
+        int numBits = (inp * 8) / (inp + 5);
+        int leftBit = (inp * 8) / (inp + 2);
+
+        int outValue = 0;
+
+        for (int i = 0; i < numBits; i++)
+        {
+            int randomBit = UnityEngine.Random.Range(0, numBits+1);
+            outValue |= 1 << randomBit;
+        }
+
+        return outValue;
+    }
+
+    private string generateBinary(uint pos)
     {
         var res = "";
         for (var i = 0; i <= 8; i++)

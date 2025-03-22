@@ -17,6 +17,7 @@ public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     [SerializeField] public GameObject scoreNumCreateTextPrefab;
     [SerializeField] public Sprite positiveImage;
     [SerializeField] public Sprite negativeImage;
+    [SerializeField] public GameObject cardShadow;
 
     private int _cardValue;
 
@@ -35,7 +36,6 @@ public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     {
         _image = GetComponent<Image>();
         _transform = GetComponent<RectTransform>();
-        _originalPosition = _transform.position;
         _cardValueText = cardValueText.GetComponent<TextMeshProUGUI>();
         _cardScoreVariables = cardValueText.GetComponent<CardScoreVariables>();
 
@@ -56,6 +56,7 @@ public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     // Update is called once per frame
     void Update()
     {
+        _originalPosition = cardShadow.GetComponent<RectTransform>().position;
 
         _cardValue = Convert.ToInt32(_cardValueText.text);
 
