@@ -14,6 +14,7 @@ public class ConfirmButton : MonoBehaviour, IPointerClickHandler
     {
         var button = gameLogic.GetComponent<GameLogic>();
         button.IsSubmitting = true;
+        button.swapTeleports();
         button.Timer -= 5;
         GameLogic.FinalScore = 0;
     }

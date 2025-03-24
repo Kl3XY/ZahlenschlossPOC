@@ -1,4 +1,6 @@
+using System;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class CardInfo : MonoBehaviour
@@ -13,7 +15,22 @@ public class CardInfo : MonoBehaviour
 
     public void setCardValue(string str)
     {
-        _cardValueText.text = "0";
+        _cardValueText.text = str;
+    }
+
+    public void setTeleportStatus(modifiers modifier, GameObject obj, Color col)
+    {
+        var script = card.GetComponent<CardLogic>().GetComponent<CardLogic>();
+
+        script.currentModifier = modifier;
+        script.attachedGameObject = obj;
+        script.modifierColor = col;
+    }
+
+    public Tuple<modifiers, GameObject> getTeleportStatus()
+    {
+        var script = card.GetComponent<CardLogic>().GetComponent<CardLogic>();
+        return new Tuple<modifiers, GameObject>(script.currentModifier, script.attachedGameObject);
     }
 
     public void flipCard()

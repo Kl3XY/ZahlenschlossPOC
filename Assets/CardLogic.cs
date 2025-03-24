@@ -11,13 +11,32 @@ enum flipStates
     negative
 }
 
+public enum modifiers
+{
+    none,
+    teleportTo,
+    teleportFrom
+}
+
 public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
+    [Header("Dependencies and stuff")]
     [SerializeField] public GameObject cardValueText;
     [SerializeField] public GameObject scoreNumCreateTextPrefab;
     [SerializeField] public Sprite positiveImage;
     [SerializeField] public Sprite negativeImage;
     [SerializeField] public GameObject cardShadow;
+    [Space(20)]
+
+    [Header("Customizeables")]
+    public modifiers currentModifier = modifiers.none;
+    public Color modifierColor = new Color(1, 1, 1);
+    [Space(20)]
+
+    [Header("Subtract, Multiply and Bitshift FX")]
+    public Image TeleportFX;
+    [Space(20)]
+    public GameObject attachedGameObject;
 
     private int _cardValue;
 
@@ -34,6 +53,8 @@ public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        TeleportFX.enabled = false;
+
         _image = GetComponent<Image>();
         _transform = GetComponent<RectTransform>();
         _cardValueText = cardValueText.GetComponent<TextMeshProUGUI>();
@@ -53,12 +74,30 @@ public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
         }
     }
 
+    public static T Choose<T>(params T[] options)
+    {
+        if (options == null || options.Length == 0)
+            throw new ArgumentException("Array isn't long enough.");
+
+        return options[UnityEngine.Random.Range(0, options.Length)];
+    }
+
     // Update is called once per frame
     void Update()
     {
         _originalPosition = cardShadow.GetComponent<RectTransform>().position;
 
         _cardValue = Convert.ToInt32(_cardValueText.text);
+
+        TeleportFX.GetComponent<Image>().color = modifierColor;
+
+        if (currentModifier != modifiers.none)
+        {
+            TeleportFX.enabled = true;
+        } else
+        {
+            TeleportFX.enabled = false;
+        }
 
         if (IsFlipping)
         {
@@ -133,6 +172,11 @@ public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     public string GetNumber()
     {
         return _cardValueText.text;
+    }
+
+    public void SetNumber(string num)
+    {
+        _cardValueText.text = num;
     }
     public void OnPointerClick(PointerEventData eventData)
     {

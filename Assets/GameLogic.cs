@@ -4,6 +4,8 @@ using UnityEngine.UI;
 using JetBrains.Annotations;
 using UnityEditor;
 using Unity.VisualScripting;
+using static Unity.Burst.Intrinsics.X86.Avx;
+using System.Collections.Generic;
 
 public class GameLogic : MonoBehaviour
 {
@@ -16,18 +18,23 @@ public class GameLogic : MonoBehaviour
     [SerializeField] private GameObject gameScoreText;
     [SerializeField] private GameObject scoreToAimFor;
     [SerializeField] private GameObject _chainTextd;
+    [SerializeField] private GameObject _roundTextd;
     [SerializeField] private GameObject deckPrefab;
     [SerializeField] private GameObject background;
     [SerializeField] private int chainCount = 1;
     private int amountCompleted = 1;
+    private int teleportAmount = 0;
+    public bool ActualSubmit = false;
     public bool IsSubmitting = false;
     [SerializeField] private double delay = 0;
+    private double swapTeleportDelay = 0.5;
     private uint pos = 0;
     public int GameScore = 0;
     public double Timer = 240;
     private Image _image;
     private UnityEngine.Color _color = new Color(1, 1, 1);
     private UnityEngine.Color _defaultColor = new Color(1, 1, 1);
+    private List<Color> colorList = new List<Color>();
 
     private DeckLogic _decklogic;
 
@@ -54,7 +61,10 @@ public class GameLogic : MonoBehaviour
         scoreText.text = FinalScore.ToString();
 
         var chainText = _chainTextd.GetComponent<TMPro.TextMeshProUGUI>();
-        chainText.text = $"x {chainCount}";
+        chainText.text = $"Chain {chainCount}";
+
+        var roundText = _roundTextd.GetComponent<TMPro.TextMeshProUGUI>();
+        roundText.text = $"Round {amountCompleted}";
         //scoreText.color = Color.Lerp(scoreText.color, new Color(1f - _color.r, 1f - _color.g, 1f - _color.b), Time.deltaTime * 10);
 
         Timer -= Time.fixedDeltaTime;
@@ -71,70 +81,181 @@ public class GameLogic : MonoBehaviour
 
         if (IsSubmitting)
         {
-            canInteract = false;
-            delay -= Time.fixedDeltaTime;
-
-            if (delay <= 0)
+            swapTeleportDelay -= Time.fixedDeltaTime;
+            if (swapTeleportDelay < 0 || teleportAmount == 0)
             {
-                var logic = _decklogic.GetCard((int)pos).GetComponentInChildren<CardLogic>();
-                logic.bump();
+                canInteract = false;
+                delay -= Time.fixedDeltaTime;
 
-                Vibration.Vibrate(5);
-
-                pos++;
-                
-                if (logic.GetNumber() == "1")
+                if (delay <= 0)
                 {
-                    FinalScore += Convert.ToInt32(generateBinary(pos), 2);
-                    scoreText.text = FinalScore.ToString();
-                    scoreNum.GetComponent<MadeNumberLogic>().bump();
-                    delay = 10 * Time.fixedDeltaTime;
-                } else
-                {
-                    delay = 5 * Time.fixedDeltaTime;
-                }
-            }
+                    var logic = _decklogic.GetCard((int)pos).GetComponentInChildren<CardLogic>();
+                    logic.bump();
 
-            if (pos >= 8)
-            {
-                IsSubmitting = false;
-                delay = 0;
-                pos = 0;
+                    Vibration.Vibrate(5);
 
-                var Is = scoreNum.GetComponent<TMPro.TextMeshProUGUI>();
+                    pos++;
 
-                var toBe = scoreToAimFor.GetComponent<TMPro.TextMeshProUGUI>();
-
-                if (Is.text == toBe.text)
-                {
-                    _image.color = new Color(1f, 1f, 1f);
-                    
-                    toBe.text = Generate(chainCount).ToString();
-                    FinalScore = 0;
-                    scoreToAimFor.GetComponent<MadeNumberLogic>().bump();
-
-                    chainCount++;
-
-                    GameScore += 100 + 45 * chainCount;
-                    Timer += Math.Max(15, 25 - 5 * amountCompleted) ;
-
-                    amountCompleted += 1;
-
-                    var button = deckPrefab.GetComponent<DeckLogic>();
-                    foreach (Transform child in deckPrefab.transform)
+                    if (logic.GetNumber() == "1")
                     {
-                        var comp = child.GetComponent<CardInfo>();
-                        comp.setCardValue("0");
-                        comp.flipCard();
-
+                        FinalScore += Convert.ToInt32(generateBinary(pos), 2);
+                        scoreText.text = FinalScore.ToString();
+                        scoreNum.GetComponent<MadeNumberLogic>().bump();
+                        delay = 10 * Time.fixedDeltaTime;
                     }
-                } else
-                {
-                    chainCount = 1;
+                    else
+                    {
+                        delay = 5 * Time.fixedDeltaTime;
+                    }
+                    if (pos >= 8)
+                    {
+                        IsSubmitting = false;
+                        delay = 0;
+                        pos = 0;
+                        swapTeleportDelay = 0.5;
 
-                    _image.color = new Color(1f, 0f, 0f);
+                        var Is = scoreNum.GetComponent<TMPro.TextMeshProUGUI>();
+                        var toBe = scoreToAimFor.GetComponent<TMPro.TextMeshProUGUI>();
+
+                        if (Is.text == toBe.text)
+                        {
+                            _image.color = new Color(1f, 1f, 1f);
+
+                            toBe.text = Generate(chainCount).ToString();
+                            FinalScore = 0;
+                            scoreToAimFor.GetComponent<MadeNumberLogic>().bump();
+
+                            chainCount++;
+
+                            GameScore += 100 + 45 * chainCount;
+                            Timer += Math.Max(15, 25 - 5 * amountCompleted);
+
+                            amountCompleted += 1;
+
+                            colorList.Clear();
+
+                            var button = deckPrefab.GetComponent<DeckLogic>();
+                            foreach (Transform child in deckPrefab.transform)
+                            {
+                                var comp = child.GetComponent<CardInfo>();
+                                comp.setCardValue("0");
+                                comp.flipCard();
+                                comp.setTeleportStatus(modifiers.none, null, new Color());
+
+                            }
+
+                            if (amountCompleted > 10)
+                            {
+                                var a = Math.Clamp(Math.Floor((double)amountCompleted / 10), 0, 4);
+                                teleportAmount = 0;
+
+                                while (a > 0)
+                                {
+                                    teleportAmount += 1;
+                                    RandomlySelectTwoTeleporters();
+                                    a--;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            chainCount = 1;
+                            swapTeleports();
+                            _image.color = new Color(1f, 0f, 0f);
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    public GameObject randomlySelectTeleportableCard()
+    {
+        var childCount = deckPrefab.transform.childCount;
+        var selectChildTeleportTo = UnityEngine.Random.Range(0, childCount);
+        var telTo = deckPrefab.transform.GetChild(selectChildTeleportTo);
+        while (telTo.GetComponent<CardInfo>().getTeleportStatus().Item1 != modifiers.none)
+        {
+            selectChildTeleportTo = UnityEngine.Random.Range(0, childCount);
+            telTo = deckPrefab.transform.GetChild(selectChildTeleportTo);
+        }
+        telTo = deckPrefab.transform.GetChild(selectChildTeleportTo);
+
+        return telTo.gameObject;
+    }
+
+    public void RandomlySelectTwoTeleporters()
+    {
+        Color randomColor = GenerateUniqueColor();
+
+        colorList.Add(randomColor);
+
+        var telTo = randomlySelectTeleportableCard();
+
+        telTo.GetComponent<CardInfo>().setTeleportStatus(modifiers.teleportTo, null, randomColor);
+
+        var telFrom = randomlySelectTeleportableCard();      
+
+        telTo.GetComponent<CardInfo>().setTeleportStatus(modifiers.teleportTo, telFrom.gameObject, randomColor);
+        telFrom.GetComponent<CardInfo>().setTeleportStatus(modifiers.teleportFrom, telTo.gameObject, randomColor);
+
+    }
+
+    Color GenerateUniqueColor()
+    {
+        int maxAttempts = 100; // Maximale Versuche, um eine passende Farbe zu finden
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            // HSV-Werte zufällig generieren
+            float h = UnityEngine.Random.value; // Farbton (Hue)
+            float s = UnityEngine.Random.Range(1.0f, 1f); // Sättigung (kräftige Farben)
+            float v = UnityEngine.Random.Range(1.0f, 1f); // Helligkeit
+
+            Color newColor = Color.HSVToRGB(h, s, v);
+            newColor.a = 0.45f;
+
+            // Prüfen, ob die Farbe einzigartig genug ist
+            if (IsColorUnique(h))
+            {
+                return newColor;
+            }
+        }
+
+        Debug.LogWarning("Maximale Versuche erreicht! Rückgabe einer möglichen Farbe.");
+        return Color.HSVToRGB(UnityEngine.Random.value, 1f, 1f); // Notfallfarbe
+    }
+
+    bool IsColorUnique(float newHue)
+    {
+        foreach (Color color in colorList)
+        {
+            Color.RGBToHSV(color, out float existingHue, out _, out _);
+
+            if (Mathf.Abs(existingHue - newHue) < 0.1f)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public void swapTeleports()
+    {
+        foreach (Transform child in deckPrefab.transform)
+        {
+            var _f = child.GetComponent<CardInfo>().getTeleportStatus();
+            if (_f.Item1 == modifiers.teleportFrom)
+            {
+                var _f2 = child.GetComponent<CardInfo>().getCardValue();
+                var _f3 = _f.Item2.GetComponent<CardInfo>().getCardValue();
+
+                _f.Item2.GetComponent<CardInfo>().setCardValue(_f2);
+                _f.Item2.GetComponent<CardInfo>().flipCard();
+
+                child.GetComponent<CardInfo>().setCardValue(_f3);
+                child.GetComponent<CardInfo>().flipCard();
+            }
+
         }
     }
 
