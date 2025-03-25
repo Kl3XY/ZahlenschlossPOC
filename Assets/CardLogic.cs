@@ -139,7 +139,7 @@ public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
 
         if (IsFlipping == false)
         {
-            if (_isHoveringOverCard && GameLogic.canInteract == true)
+            if (_isHoveringOverCard && GameLogic.AcceptPlayerInput == true)
             {
                 var newPos = new Vector3()
                 {
@@ -180,23 +180,21 @@ public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     }
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (GameLogic.canInteract == true)
+        if (GameLogic.AcceptPlayerInput == true)
         {
             _transform.localScale = new Vector3(1.3f, 1.3f, 1.3f);
             bump();
-
-            GameLogic.FinalScore = 0;
         }
     }
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (GameLogic.canInteract == true && IsFlipping == false)
+        if (GameLogic.AcceptPlayerInput == true && IsFlipping == false)
         {
             bump();
 
             IsFlipping = true;
 
-            GameLogic.FinalScore = 0;
+            GameLogic.isHoveringOverCard = true;
 
             Vibration.Vibrate(15);
 
@@ -216,5 +214,6 @@ public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     public void OnPointerExit(PointerEventData eventData)
     {
         _isHoveringOverCard = false;
+        GameLogic.isHoveringOverCard = false;
     }
 }

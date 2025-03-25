@@ -7,7 +7,6 @@ public class scoreNumLogic : MonoBehaviour
     [SerializeField] TextMeshProUGUI scoreText;
     [SerializeField] double SurviveTime = 20;
     private float ySpd = 2;
-    private float speed = 0;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()

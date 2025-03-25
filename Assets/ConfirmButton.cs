@@ -14,9 +14,9 @@ public class ConfirmButton : MonoBehaviour, IPointerClickHandler
     {
         var button = gameLogic.GetComponent<GameLogic>();
         button.IsSubmitting = true;
-        button.swapTeleports();
+        button.SwapTeleports();
         button.Timer -= 5;
-        GameLogic.FinalScore = 0;
+        GameLogic.hasConfirmed = true;
     }
     void Start()
     {
@@ -25,7 +25,7 @@ public class ConfirmButton : MonoBehaviour, IPointerClickHandler
 
     void Update()
     {
-        if (GameLogic.canInteract)
+        if (GameLogic.AcceptPlayerInput)
         {
             this.transform.position = _originalPosition;
         } else
