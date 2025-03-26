@@ -22,10 +22,11 @@ public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
 {
     [Header("Dependencies and stuff")]
     [SerializeField] public GameObject cardValueText;
-    [SerializeField] public GameObject scoreNumCreateTextPrefab;
     [SerializeField] public Sprite positiveImage;
     [SerializeField] public Sprite negativeImage;
     [SerializeField] public GameObject cardShadow;
+    [SerializeField] private GameObject soundBumped;
+    [SerializeField] private GameObject soundFlip;
     [Space(20)]
 
     [Header("Customizeables")]
@@ -50,10 +51,16 @@ public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     private Vector3 _originalPosition;
     private TextMeshProUGUI _cardValueText;
 
+    private AudioSource _audioBump;
+    private AudioSource _audioFlip;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         TeleportFX.enabled = false;
+
+        _audioBump = soundBumped.GetComponent<AudioSource>();
+        _audioFlip = soundFlip.GetComponent<AudioSource>();
 
         _image = GetComponent<Image>();
         _transform = GetComponent<RectTransform>();
@@ -158,7 +165,7 @@ public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
         }
     }
 
-    public void bump()
+    public void bump(bool playSound = true, float pitch = 1.0f)
     {
         var newPos = new Vector3()
         {
@@ -167,6 +174,11 @@ public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
             z = _originalPosition.z
         };
         _transform.position = newPos;
+        if (playSound)
+        {
+            _audioBump.pitch = pitch; 
+            _audioBump.Play();
+        }
     }
 
     public string GetNumber()
@@ -183,20 +195,22 @@ public class CardLogic : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
         if (GameLogic.AcceptPlayerInput == true)
         {
             _transform.localScale = new Vector3(1.3f, 1.3f, 1.3f);
-            bump();
+            bump(false);
         }
     }
     public void OnPointerEnter(PointerEventData eventData)
     {
         if (GameLogic.AcceptPlayerInput == true && IsFlipping == false)
         {
-            bump();
+            bump(false);
 
             IsFlipping = true;
-
+            _audioFlip.Play();
             GameLogic.isHoveringOverCard = true;
 
-            Vibration.Vibrate(15);
+#if !UNITY_EDITOR
+    Handheld.Vibrate(15);
+#endif
 
             if (_cardValueText.text == "0")
             {

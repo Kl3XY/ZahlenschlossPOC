@@ -8,6 +8,8 @@ public class ColorGen : MonoBehaviour
      * Die Farben die vorher generiert worden.
      */
     public List<Color> colorList = new List<Color>();
+    public float colorDiff = 0.1f;
+    
 
     public Color GenerateUniqueColor()
     {
@@ -45,7 +47,7 @@ public class ColorGen : MonoBehaviour
         {
             Color.RGBToHSV(color, out float existingHue, out _, out _);
 
-            if (Mathf.Abs(existingHue - newHue) < 0.1f)
+            if (Mathf.Abs(existingHue - newHue) < colorDiff)
             {
                 return false;
             }

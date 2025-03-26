@@ -21,13 +21,17 @@ public class GameLogic : MonoBehaviour
     [SerializeField] private GameObject _roundTextd;
     [SerializeField] private GameObject deckPrefab;
     [SerializeField] private GameObject background;
-    
+    [SerializeField] private GameObject soundWin;
+    [SerializeField] private GameObject soundLose;
+    [SerializeField] private double delay = 0;
+
     private int teleportAmount = 0;
     public bool ActualSubmit = false;
     public bool IsSubmitting = false;
-    [SerializeField] private double delay = 0;
+    public int DefaultBonusTimer = 5;
     private double swapTeleportDelay = 0.5;
     private uint pos = 0;
+    private float soundPitch = 0.5f;
 
     private Image _image;
     private Color _color = new Color(1, 1, 1);
@@ -39,7 +43,8 @@ public class GameLogic : MonoBehaviour
     private int _finalScore = 0;
     private int _chainCount = 1;
     private int _rounds = 1;
-    private double _timer = 1;
+    private double _timer = 30;
+    private double _bonusTimer = 5;
     private int _gameScore = 0;
 
     /*
@@ -70,7 +75,7 @@ public class GameLogic : MonoBehaviour
         set
         {
             _chainCount = value;
-            _chainText.text = $"Chain {value}";
+            _chainText.text = $"x {value}";
         }
     }
 
@@ -117,6 +122,18 @@ public class GameLogic : MonoBehaviour
         }
     }
 
+    public double BonusTimer
+    {
+        get
+        {
+            return _bonusTimer;
+        }
+        set
+        {
+            _bonusTimer = value;
+        }
+    }
+
 
     /*
      * Texts
@@ -128,6 +145,8 @@ public class GameLogic : MonoBehaviour
     private TMPro.TextMeshProUGUI _gameScoreText;
     private TMPro.TextMeshProUGUI _currentEnteredScore;
     private TMPro.TextMeshProUGUI _shouldBeEnteredScore;
+    private AudioSource _audioWin;
+    private AudioSource _audioLose;
 
     /*
      * Logics
@@ -158,6 +177,9 @@ public class GameLogic : MonoBehaviour
         _madeNumberLogic = scoreToAimFor.GetComponent<MadeNumberLogic>();
         _currentMadeNumberLogic = scoreNum.GetComponent<MadeNumberLogic>();
 
+        _audioLose = soundLose.GetComponent<AudioSource>();
+        _audioWin = soundWin.GetComponent<AudioSource>();
+
         _currentEnteredScore.text = "0";
 
         _shouldBeEnteredScore.text = UnityEngine.Random.Range(0, 20).ToString();
@@ -167,8 +189,6 @@ public class GameLogic : MonoBehaviour
     void Update()
     {
         _image.color = Color.Lerp(_image.color, _defaultColor, Time.deltaTime * 10);
-
-        Timer -= Time.fixedDeltaTime;
 
         if ((isHoveringOverCard && AcceptPlayerInput) || hasConfirmed)
         {
@@ -189,9 +209,11 @@ public class GameLogic : MonoBehaviour
                 if (delay <= 0)
                 {
                     var logic = _decklogic.GetCard((int)pos).GetComponentInChildren<CardLogic>();
-                    logic.bump();
+                    soundPitch += 0.1f;
 
-                    Vibration.Vibrate(5);
+#if !UNITY_EDITOR
+    Handheld.Vibrate();
+#endif
 
                     pos++;
 
@@ -201,10 +223,12 @@ public class GameLogic : MonoBehaviour
                         _scoreText.text = FinalScore.ToString();
                         _currentMadeNumberLogic.bump();
                         delay = 10 * Time.fixedDeltaTime;
+                        logic.bump(true, soundPitch+0.2f);
                     }
                     else
                     {
                         delay = 5 * Time.fixedDeltaTime;
+                        logic.bump(true, soundPitch);
                     }
 
                     if (pos >= 8)
@@ -212,17 +236,24 @@ public class GameLogic : MonoBehaviour
                         refreshDelays();
                         if (_currentEnteredScore.text == _shouldBeEnteredScore.text)
                         {
+                            _audioWin.Play();
                             finishRound();
                         }
                         else
                         {
+                            _audioLose.Play();
                             ChainCount = 1;
                             SwapTeleports();
                             _image.color = new Color(1f, 0f, 0f);
                         }
+                        soundPitch = 0.5f;
                     }
                 }
             }
+        } else
+        {
+            Timer -= Time.fixedDeltaTime;
+            BonusTimer -= Time.fixedDeltaTime;
         }
     }
 
@@ -238,7 +269,10 @@ public class GameLogic : MonoBehaviour
     {
         _image.color = new Color(1f, 1f, 1f);
 
-        _shouldBeEnteredScore.text = NumberGen.Generate(ChainCount).ToString();
+        var difficulty = Rounds + ChainCount;
+        Debug.Log(difficulty);
+
+        _shouldBeEnteredScore.text = NumberGen.Generate(difficulty).ToString();
         FinalScore = 0;
         _madeNumberLogic.bump();
 
@@ -246,12 +280,22 @@ public class GameLogic : MonoBehaviour
 
         GameScore += 100 + 45 * ChainCount;
         Timer += Math.Max(15, 25 - 5 * Rounds);
+        if (BonusTimer > 0)
+        {
+            GameScore += UnityEngine.Random.Range(45, 250) * ChainCount;
+        }
+        BonusTimer = Math.Max(2, DefaultBonusTimer-(ChainCount-1));
 
         Rounds += 1;
 
         _colorGen.clearColorList();
 
         resetTeleportStatusOnAllCards(modifiers.none, "0");
+
+        if (Rounds % 10 == 0)
+        {
+            testScript.generateNewBG();
+        }
 
         if (Rounds > 10)
         {
